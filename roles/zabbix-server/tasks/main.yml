@@ -1,0 +1,97 @@
+- name: install zabbix-release
+  yum: name=http://repo.zabbix.com/zabbix/3.0/rhel/6/x86_64/zabbix-release-3.0-1.el6.noarch.rpm state=present
+
+- name: install zabbix-server
+  yum: name={{ item }} state=present
+  with_items:
+    - zabbix-server-mysql
+    - zabbix-web-mysql
+    - zabbix-web-japanese
+    - zabbix-get
+
+- name: install mysql
+  yum: name={{ item }} state=present
+  with_items:
+    - mysql56
+    - mysql56-server
+
+- name: install php5.6
+  yum: name={{ item }} state=present
+  with_items:
+    - php56
+    - php56-bcmath
+    - php56-mbstring
+    - php56-gd
+    - php56-mysqlnd
+
+- name: install other packages
+  yum: name={{ item }} state=present
+  with_items:
+    - git
+    - crontabs
+    - ntp
+    - tcpdump
+    - telnet
+    - ruby
+    - ruby-devel
+    - vim-enhanced
+    - bind-utils
+    - man
+    - mlocate
+    - zlib-devel
+    - gcc
+    - make
+    - zip
+    - libyaml
+    - libxslt-devel
+    - libxml2-devel
+
+- name: install gem packages
+  shell: bash -lc "gem install {{ item }}"
+  with_items:
+    - zabbix-client
+    - zipruby
+
+- name: template my.cnf
+  template: src=etc/my.cnf.j2 dest=/etc/my.cnf owner=root group=root mode=0644 backup=yes
+  notify: restart mysqld
+  register: config_status
+
+- name: start mysql 
+  shell: service mysqld restart
+  when: config_status
+
+- name: check exists zabbix database
+  stat: path="/var/lib/mysql/zabbix"
+  register: check_db
+
+- name: create database
+  shell: >
+    echo "create database {{ zabbix_db_name }};" | mysql -uroot;
+    echo "grant all privileges on {{ zabbix_db_name }}.* to {{ zabbix_db_username }}@localhost identified by \"{{ zabbix_db_password }}\" ;"  | mysql -uroot;
+    echo "flush privileges;"  | mysql -uroot;
+  when: not check_db.stat.exists
+
+- name: create table
+  shell: zcat /usr/share/doc/`rpm -q zabbix-server-mysql | sed -e s/-.\.el.\.x86_64//`/create.sql.gz | mysql -uroot zabbix
+  when: not check_db.stat.exists
+
+- name: permission of /etc/zabbin/web
+  file: path=/etc/zabbix/web owner=apache group=apache mode=0750
+
+- name: template /etc/zabbix/zabbix_server.conf
+  template: src=etc/zabbix/zabbix_server.conf.j2 dest=/etc/zabbix/zabbix_server.conf owner=root group=root mode=0640 backup=yes
+  notify: restart zabbix-server
+
+- name: template /etc/zabbix/web/zabbix.conf.php
+  template: src=etc/zabbix/web/zabbix.conf.php.j2 dest=/etc/zabbix/web/zabbix.conf.php owner=apache group=apache mode=0640 backup=yes
+  notify: restart httpd
+
+- name: template /etc/httpd/conf.d/zabbix.conf
+  template: src=etc/httpd/conf.d/zabbix.conf.j2 dest=/etc/httpd/conf.d/zabbix.conf owner=root group=root mode=0644 backup=yes
+  notify: restart httpd
+
+- name: copy file /var/www/html/index.html
+  template: src=var/www/html/index.html.j2 dest=/var/www/html/index.html owner=root group=root mode=0644 backup=yes
+
+
