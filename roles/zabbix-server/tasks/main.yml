@@ -94,4 +94,5 @@
 - name: copy file /var/www/html/index.html
   template: src=var/www/html/index.html.j2 dest=/var/www/html/index.html owner=root group=root mode=0644 backup=yes
 
-
+- name: Start and Enable to zabbix-server
+  service: name=zabbix-server state=started enabled=yes
