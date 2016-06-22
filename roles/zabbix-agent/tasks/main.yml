@@ -10,3 +10,6 @@
 - name: template zabbix_agentd.conf
   template: src=etc/zabbix/zabbix_agentd.conf.j2 dest=/etc/zabbix/zabbix_agentd.conf owner=root group=root mode=0644 backup=yes
   notify: restart zabbix-agent
+
+- name: Start and Enable to zabbix-agent
+  service: name=zabbix-agent state=started enabled=yes
