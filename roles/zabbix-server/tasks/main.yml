@@ -96,3 +96,6 @@
 
 - name: Start and Enable to zabbix-server
   service: name=zabbix-server state=started enabled=yes
+
+- name: Start and Enable to mysqld
+  service: name=mysqld state=started enabled=yes
