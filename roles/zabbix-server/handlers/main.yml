@@ -1,8 +1,8 @@
-- name: restart zabbix-server
-  service: name=zabbix-server state=restarted enabled=yes sleep=30
-
 - name: restart mysqld
   service: name=mysqld state=restarted enabled=yes
 
 - name: restart httpd
   service: name=httpd state=restarted enabled=yes
+
+- name: restart zabbix-server
+  service: name=zabbix-server state=restarted enabled=yes
